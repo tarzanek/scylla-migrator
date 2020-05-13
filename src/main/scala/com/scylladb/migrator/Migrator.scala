@@ -17,6 +17,7 @@ import com.datastax.spark.connector.cql._
 import com.datastax.spark.connector.rdd.ReadConf
 import com.datastax.spark.connector.rdd.partitioner.dht.LongToken
 import com.datastax.spark.connector.types.CassandraOption
+import com.datastax.spark.connector.types.CounterType
 import com.datastax.spark.connector.writer._
 import org.apache.log4j.{ Level, LogManager, Logger }
 import org.apache.spark.SparkConf
@@ -91,12 +92,18 @@ object Migrator {
             tableDef.clusteringColumns.map(_.ref) ++
             tableDef.regularColumns.flatMap { column =>
               val colName = column.columnName
-
-              List(
-                column.ref,
-                colName.ttl as s"${colName}_ttl",
-                colName.writeTime as s"${colName}_writetime"
-              )
+              if (column.columnType.isInstanceOf[CounterType.type]) {
+                List(
+                  column.ref,
+                  colName.ttl as s"${colName}_ttl"
+                )
+              } else {
+                List(
+                  column.ref,
+                  colName.ttl as s"${colName}_ttl",
+                  colName.writeTime as s"${colName}_writetime"
+                )
+              }
             }
 
         log.info("ColumnRefs generated for selection:")
