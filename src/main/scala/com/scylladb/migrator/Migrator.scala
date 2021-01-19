@@ -343,6 +343,9 @@ object Migrator {
     log.info("Created source dataframe; resulting schema:")
     sourceDF.printSchema()
 
+    log.info(
+      "We need to transfer: " + sourceDF.rdd.getNumPartitions + " partitions/token ranges in total")
+
     log.info("Starting write...")
 
     val tokenRangeAccumulator = TokenRangeAccumulator.empty
