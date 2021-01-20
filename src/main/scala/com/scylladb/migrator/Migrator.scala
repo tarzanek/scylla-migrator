@@ -345,6 +345,9 @@ object Migrator {
 
     log.info(
       "We need to transfer: " + sourceDF.rdd.getNumPartitions + " partitions/token ranges in total")
+    if (migratorConfig.skipTokenRanges != None) {
+      log.info("Savepoints array defined, size of the array: " + migratorConfig.skipTokenRanges.size)
+    }
 
     log.info("Starting write...")
 
