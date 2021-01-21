@@ -2,16 +2,16 @@ package com.scylladb.migrator
 
 import com.datastax.spark.connector._
 import com.datastax.spark.connector.cql._
+import com.datastax.spark.connector.rdd.partitioner.{ CassandraPartition, CqlTokenRange }
 import com.datastax.spark.connector.rdd.partitioner.dht.{ LongToken, Token }
+
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.ScheduledThreadPoolExecutor
-
 import scala.util.control.NonFatal
 import java.net.InetAddress
 import java.nio.charset.StandardCharsets
 import java.nio.file.{ Files, Paths }
 import java.util.concurrent.{ ScheduledThreadPoolExecutor, TimeUnit }
-
 import com.datastax.spark.connector._
 import com.datastax.spark.connector.cql._
 import com.datastax.spark.connector.rdd.ReadConf
@@ -343,11 +343,31 @@ object Migrator {
     log.info("Created source dataframe; resulting schema:")
     sourceDF.printSchema()
 
-    log.info(
-      "We need to transfer: " + sourceDF.rdd.getNumPartitions + " partitions/token ranges in total")
+    log.info("We need to transfer: " + sourceDF.rdd.getNumPartitions + " partitions in total")
     if (migratorConfig.skipTokenRanges != None) {
-      log.info("Savepoints array defined, size of the array: " + migratorConfig.skipTokenRanges.size)
+      log.info(
+        "Savepoints array defined, size of the array: " + migratorConfig.skipTokenRanges.size)
     }
+    val partitions = sourceDF.rdd.partitions
+
+    val cassandraPartitions = partitions.map(p => { p.asInstanceOf[CassandraPartition[_, _]] })
+    var allTokenRanges = Set[(Token[_], Token[_])]()
+    cassandraPartitions.foreach(p => {
+      p.tokenRanges
+        .asInstanceOf[Vector[CqlTokenRange[_, _]]]
+        .foreach(tr => {
+          val range =
+            Set((tr.range.start.asInstanceOf[Token[_]], tr.range.end.asInstanceOf[Token[_]]))
+          allTokenRanges = allTokenRanges ++ range
+        })
+
+    })
+
+    log.info("All token ranges extracted from partitions size:" + allTokenRanges.size)
+
+    val diff = allTokenRanges.diff(migratorConfig.skipTokenRanges)
+    log.info("Diff ... total diff of full tanges to savepoints is: " + diff.size)
+    log.info(diff)
 
     log.info("Starting write...")
 
