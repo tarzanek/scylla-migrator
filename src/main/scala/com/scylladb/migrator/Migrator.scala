@@ -46,6 +46,23 @@ object Connectors {
           case None                                  => NoAuthConf
           case Some(Credentials(username, password)) => PasswordAuthConf(username, password)
         },
+        cassandraSSLConf = sourceSettings.sslOptions match {
+          case None => CassandraConnectorConf.DefaultCassandraSSLConf
+          case Some(sslOptions) =>
+            CassandraConnectorConf.CassandraSSLConf(
+              enabled            = sslOptions.enabled,
+              clientAuthEnabled  = sslOptions.clientAuthEnabled,
+              trustStorePath     = sslOptions.trustStorePath,
+              trustStorePassword = sslOptions.trustStorePassword,
+              trustStoreType     = sslOptions.trustStoreType.getOrElse("JKS"),
+              protocol           = sslOptions.protocol.getOrElse("TLS"),
+              keyStorePath       = sslOptions.keyStorePath,
+              keyStorePassword   = sslOptions.keyStorePassword,
+              enabledAlgorithms = sslOptions.enabledAlgorithms.getOrElse(
+                Set("TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA")),
+              keyStoreType = sslOptions.keyStoreType.getOrElse("JKS")
+            )
+        },
         maxConnectionsPerExecutor = sourceSettings.connections,
         queryRetryCount           = -1
       )
@@ -59,6 +76,23 @@ object Connectors {
         authConf = targetSettings.credentials match {
           case None                                  => NoAuthConf
           case Some(Credentials(username, password)) => PasswordAuthConf(username, password)
+        },
+        cassandraSSLConf = targetSettings.sslOptions match {
+          case None => CassandraConnectorConf.DefaultCassandraSSLConf
+          case Some(sslOptions) =>
+            CassandraConnectorConf.CassandraSSLConf(
+              enabled            = sslOptions.enabled,
+              clientAuthEnabled  = sslOptions.clientAuthEnabled,
+              trustStorePath     = sslOptions.trustStorePath,
+              trustStorePassword = sslOptions.trustStorePassword,
+              trustStoreType     = sslOptions.trustStoreType.getOrElse("JKS"),
+              protocol           = sslOptions.protocol.getOrElse("TLS"),
+              keyStorePath       = sslOptions.keyStorePath,
+              keyStorePassword   = sslOptions.keyStorePassword,
+              enabledAlgorithms = sslOptions.enabledAlgorithms.getOrElse(
+                Set("TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA")),
+              keyStoreType = sslOptions.keyStoreType.getOrElse("JKS")
+            )
         },
         maxConnectionsPerExecutor = targetSettings.connections,
         queryRetryCount           = -1
