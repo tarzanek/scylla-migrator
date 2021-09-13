@@ -11,12 +11,22 @@ import org.apache.spark.sql.{ DataFrame, Row, SparkSession }
 object Scylla {
   val log = LogManager.getLogger("com.scylladb.migrator.writer.Scylla")
 
+  val search1 = "_2020-06"
+  val search2 = "_2020-07"
+  val search3 = "_2020-08"
+  val search4 = "_2020-09"
+  val search5 = "_2020-10"
+  val search6 = "_2020-11"
+  val search7 = "_2020-12"
+  val search8 = "_2021-0"
+
   def writeDataframe(
     target: TargetSettings.Scylla,
     renames: List[Rename],
     df: DataFrame,
     timestampColumns: Option[TimestampColumns],
     tokenRangeAccumulator: Option[TokenRangeAccumulator])(implicit spark: SparkSession): Unit = {
+
     val connector = Connectors.targetConnector(spark.sparkContext.getConf, target)
     val writeConf = WriteConf
       .fromSparkConf(spark.sparkContext.getConf)
@@ -55,7 +65,20 @@ object Scylla {
           })
         }
 
-    rdd
+    val frdd = rdd.filter { row =>
+//      val keyindex = row.fieldIndex("key")
+      val key = row.getString(0)
+      key.contains(search1) ||
+      key.contains(search2) ||
+      key.contains(search3) ||
+      key.contains(search4) ||
+      key.contains(search5) ||
+      key.contains(search6) ||
+      key.contains(search7) ||
+      key.contains(search8)
+    }
+
+    frdd
       .saveToCassandra(
         target.keyspace,
         target.table,
