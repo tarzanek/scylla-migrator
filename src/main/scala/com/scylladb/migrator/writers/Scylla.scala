@@ -2,14 +2,21 @@ package com.scylladb.migrator.writers
 
 import com.datastax.spark.connector.writer._
 import com.datastax.spark.connector._
+import com.datastax.spark.connector.types.CassandraOption
 import com.scylladb.migrator.Connectors
 import com.scylladb.migrator.config.{ CopyType, Rename, TargetSettings }
 import com.scylladb.migrator.readers.TimestampColumns
 import org.apache.log4j.LogManager
 import org.apache.spark.sql.{ DataFrame, Row, SparkSession }
 
+import java.sql.Timestamp
+
 object Scylla {
   val log = LogManager.getLogger("com.scylladb.migrator.writer.Scylla")
+
+  val emonths = Timestamp.valueOf("2021-01-01 00:00:00")
+  val tmonths = Timestamp.valueOf("2020-09-01 00:00:00")
+  val dummyTS = Timestamp.valueOf("1950-01-01 00:00:00")
 
   def writeDataframe(
     target: TargetSettings.Scylla,
@@ -17,6 +24,7 @@ object Scylla {
     df: DataFrame,
     timestampColumns: Option[TimestampColumns],
     tokenRangeAccumulator: Option[TokenRangeAccumulator])(implicit spark: SparkSession): Unit = {
+
     val connector = Connectors.targetConnector(spark.sparkContext.getConf, target)
     val writeConf = WriteConf
       .fromSparkConf(spark.sparkContext.getConf)
@@ -55,7 +63,21 @@ object Scylla {
           })
         }
 
-    rdd
+    // you have to use --conf spark.months=8 \
+    // to trigger only 8 months back data, by default 12 will be used
+
+    log.info("Months to be kept: " + spark.conf.get("spark.months"))
+    val checkTS = if (Integer.valueOf(spark.conf.get("spark.months")) == 8) emonths else tmonths
+
+    val frdd = rdd.filter { row =>
+//      val keyindex = row.fieldIndex("ts")
+      val tsoption = row.get(1).asInstanceOf[CassandraOption[Timestamp]]
+      val ts = tsoption.getOrElse(dummyTS)
+//      log.info("Timestamp: " + ts)
+      ts.asInstanceOf[Timestamp].after(checkTS)
+    }
+
+    frdd
       .saveToCassandra(
         target.keyspace,
         target.table,
