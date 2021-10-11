@@ -112,6 +112,7 @@ object Migrator {
           writers.Scylla.writeDataframe(
             target,
             migratorConfig.renames,
+            migratorConfig.defaults,
             sourceDF.dataFrame,
             sourceDF.timestampColumns,
             tokenRangeAccumulator)

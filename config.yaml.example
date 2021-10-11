@@ -180,6 +180,14 @@ savepoints:
 # - from: source_column_name
 #   to: dest_column_name
 renames: []
+
+# Column defaults configuration. 
+# For columns missing in source DB, they will be added, for existing ones, if null, then they will be set to this value.
+# If you'd like to set any column to a default, specify them as list:
+# - column: column_name
+#   default: default_value
+defaults: []
+
 # Which token ranges to skip. You shouldn't need to fill this in normally; the migrator will
 # create a savepoint file with this filled.
 skipTokenRanges: []

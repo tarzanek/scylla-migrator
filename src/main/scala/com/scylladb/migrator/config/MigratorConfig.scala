@@ -11,6 +11,7 @@ import io.circe.{ Decoder, DecodingFailure, Encoder, Error, Json }
 case class MigratorConfig(source: SourceSettings,
                           target: TargetSettings,
                           renames: List[Rename],
+                          defaults: List[Default],
                           savepoints: Savepoints,
                           skipTokenRanges: Set[(Token[_], Token[_])],
                           validation: Validation) {
